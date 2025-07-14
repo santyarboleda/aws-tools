@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "--- Verificando contenido de /opt/ml/code ---"
+ls -lR /opt/ml/code
+echo "--- Fin de la verificación ---"
+echo "--- Verificando contenido de /opt/ml/input ---"
+ls -lR /opt/ml/input
+echo "--- Fin de la verificación ---"
+
+# Ruta del bucket y carpeta donde se encuenta el archivo wsgi y app (en este caso)
+S3_CODE_PATH="s3://machine-learning-serviciosnutresa-modelos-lab/titanic/artifacts/code/"
+LOCAL_CODE_PATH="/opt/ml/code"
+
+echo "Creando directorio de código en ${LOCAL_CODE_PATH}"
+mkdir -p ${LOCAL_CODE_PATH}
+
+echo "Descargando scripts de ${S3_CODE_PATH} a ${LOCAL_CODE_PATH}"
+aws s3 sync ${S3_CODE_PATH} ${LOCAL_CODE_PATH}
+
+echo "Contenido del directorio después de la descarga:"
+ls -lR ${LOCAL_CODE_PATH}
+
+# --- LÓGICA DEL SERVIDOR (igual que antes) ---
+export PYTHONPATH=${LOCAL_CODE_PATH}:$PYTHONPATH
+cd ${LOCAL_CODE_PATH}
+exec gunicorn --timeout 60 --bind 0.0.0.0:8080 --workers 1 "wsgi:app"
